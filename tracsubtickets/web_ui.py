@@ -47,9 +47,11 @@ class SubTicketsModule(Component):
         return handler
 
     def post_process_request(self, req, template, data, content_type):
-        if req.path_info.startswith('/ticket/'):
+        path = req.path_info
+        if path.startswith('/ticket/') or path.startswith('/newticket'):
             # get parents data
-            parents = data['ticket']['parents'] or ''
+            ticket = data['ticket']
+            parents = ticket['parents'] or ''
             ids = set(self.NUMBERS_RE.findall(parents))
 
             if len(parents) > 0:
@@ -59,7 +61,7 @@ class SubTicketsModule(Component):
 
     def _append_parent_links(self, req, data, ids):
         links = []
-        for id in ids:
+        for id in sorted(ids, key=lambda x: int(x)):
             ticket = Ticket(self.env, id)
             elem = tag.a('#%s' % id,
                          href=req.href.ticket(id),
@@ -75,6 +77,22 @@ class SubTicketsModule(Component):
     # ITicketManipulator methods
     def prepare_ticket(self, req, ticket, fields, actions):
         pass
+
+    def get_children(self, parent_id, db=None):
+        children = {}
+        if not db:
+            db = self.env.get_db_cnx()
+        cursor = db.cursor()
+        cursor.execute("SELECT parent, child FROM subtickets WHERE parent=%s",
+                       (parent_id, ))
+
+        for parent, child in cursor:
+            children[child] = None
+
+        for id in children:
+            children[id] = self.get_children(id, db)
+
+        return children
         
     def validate_ticket(self, req, ticket):
         if req.args.get('action') == 'resolve':

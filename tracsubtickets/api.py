@@ -113,10 +113,7 @@ class SubTicketsSystem(Component):
         self.ticket_changed(ticket, '', ticket['reporter'], {})
 
     def ticket_changed(self, ticket, comment, author, old_values):
-        if 'parents' not in old_values:
-            return
-
-        old_parents = old_values.get('parents', '')
+        old_parents = old_values.get('parents', '') or ''
         old_parents = set(self.NUMBERS_RE.findall(old_parents))
         new_parents = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
 
@@ -154,9 +151,9 @@ class SubTicketsSystem(Component):
         try:
             ids = []
             _ids = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
-            myid = int(ticket.id)
+            myid = str(ticket.id)
             for id in _ids:
-                if int(id) == myid:
+                if id == myid:
                     yield 'parents', 'A ticket cannot be a parent to itself'
                 # TODO: circularity check
                 cursor.execute("SELECT id FROM ticket WHERE id=%s", (id, ))
