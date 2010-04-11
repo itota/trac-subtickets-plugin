@@ -1,0 +1,13 @@
+h3 .addsubticket {
+    font-size: 90%;
+}
+
+#ticket table.subtickets {
+    width: 100%;
+}
+
+#ticket table.subtickets td,
+#ticket table.subtickets th {
+    font-size: 80%;
+}
+

@@ -32,6 +32,7 @@ import re
 from trac.core import *
 from trac.env import IEnvironmentSetupParticipant
 from trac.db import DatabaseManager
+from trac.ticket.model import Ticket
 from trac.ticket.api import ITicketChangeListener, ITicketManipulator
 
 import db_default
@@ -110,9 +111,12 @@ class SubTicketsSystem(Component):
 
     # ITicketChangeListener methods
     def ticket_created(self, ticket):
-        self.ticket_changed(ticket, '', ticket['reporter'], {})
+        self.ticket_changed(ticket, '', ticket['reporter'], {'parents': ''})
 
     def ticket_changed(self, ticket, comment, author, old_values):
+        if 'parents' not in old_values:
+            return
+
         old_parents = old_values.get('parents', '') or ''
         old_parents = set(self.NUMBERS_RE.findall(old_parents))
         new_parents = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
@@ -123,13 +127,13 @@ class SubTicketsSystem(Component):
         db = self.env.get_db_cnx()
         cursor = db.cursor()
 
-        # add new parents
-        for parent in new_parents - old_parents:
-            cursor.execute("INSERT INTO subtickets VALUES(%s, %s)",
-                           (parent, ticket.id))
         # remove old parents
         for parent in old_parents - new_parents:
             cursor.execute("DELETE FROM subtickets WHERE parent=%s AND child=%s",
+                           (parent, ticket.id))
+        # add new parents
+        for parent in new_parents - old_parents:
+            cursor.execute("INSERT INTO subtickets VALUES(%s, %s)",
                            (parent, ticket.id))
         db.commit()
 
@@ -155,12 +159,41 @@ class SubTicketsSystem(Component):
             for id in _ids:
                 if id == myid:
                     yield 'parents', 'A ticket cannot be a parent to itself'
-                # TODO: circularity check
-                cursor.execute("SELECT id FROM ticket WHERE id=%s", (id, ))
-                row = cursor.fetchone()
-                if row is not None:
-                    ids.append(id)
+                else:
+                    # check if the id exists
+                    cursor.execute("SELECT id FROM ticket WHERE id=%s", (id, ))
+                    row = cursor.fetchone()
+                    if row is None:
+                        yield 'parents', 'Ticket #%s does not exist' % id
+                ids.append(id)
+
+            # circularity check function
+            def _check_parents(id, all_parents):
+                all_parents = all_parents + [id]
+                errors = []
+                cursor.execute("SELECT parent FROM subtickets WHERE child=%s", (id, ))
+                for x in [int(x[0]) for x in cursor]:
+                    if x in all_parents:
+                        error = ' > '.join(['#%s' % n for n in all_parents + [x]])
+                        errors.append(('parents', 'Circularity error: %s' % error))
+                    else:
+                        errors += _check_parents(x, all_parents)
+                return errors
+
+            for x in ids:
+                # check parent ticket state
+                parent = Ticket(self.env, x)
+                if parent and parent['status'] == 'closed':
+                    yield 'parents', 'Parent ticket #%s is closed' % x
+                else:
+                    # check circularity
+                    all_parents = ticket.id and [ticket.id] or []
+                    for error in _check_parents(int(x), all_parents):
+                        yield error
+
             ticket['parents'] = ', '.join(sorted(ids, key=lambda x: int(x)))
+
         except Exception, e:
+            self.log.error(e)
             yield 'parents', 'Not a valid list of ticket IDs'
 

@@ -28,19 +28,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from trac.core import *
-from trac.web.api import IRequestFilter
+from trac.web.api import IRequestFilter, ITemplateStreamFilter
+from trac.web.chrome import ITemplateProvider, add_stylesheet
 from trac.ticket.api import ITicketManipulator
 from trac.ticket.model import Ticket
 from genshi.builder import tag
+from genshi.filters import Transformer
 
 from api import SubTicketsSystem
 
 
 class SubTicketsModule(Component):
 
-    implements(IRequestFilter, ITicketManipulator)
+    implements(ITemplateProvider,
+               IRequestFilter,
+               ITicketManipulator,
+               ITemplateStreamFilter)
 
     NUMBERS_RE = SubTicketsSystem.NUMBERS_RE
+
+    # ITemplateProvider methods
+    def get_htdocs_dirs(self):
+        from pkg_resources import resource_filename
+        return [('subtickets', resource_filename(__name__, 'htdocs'))]
+
+    def get_templates_dirs(self):
+        return []
 
     # IRequestFilter methods
     def pre_process_request(self, req, handler):
@@ -56,6 +69,10 @@ class SubTicketsModule(Component):
 
             if len(parents) > 0:
                 self._append_parent_links(req, data, ids)
+
+            children = self.get_children(ticket.id)
+            if children:
+                data['subtickets'] = children
 
         return template, data, content_type
 
@@ -95,7 +112,8 @@ class SubTicketsModule(Component):
         return children
         
     def validate_ticket(self, req, ticket):
-        if req.args.get('action') == 'resolve':
+        action = req.args.get('action')
+        if action == 'resolve':
             db = self.env.get_db_cnx()
             cursor = db.cursor()
 
@@ -106,9 +124,62 @@ class SubTicketsModule(Component):
                 if Ticket(self.env, child)['status'] != 'closed':
                     yield None, 'Child ticket #%s has not been closed yet' % child
 
-        elif req.args.get('action') == 'reopen':
+        elif action == 'reopen':
             ids = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
             for id in ids:
                 if Ticket(self.env, id)['status'] == 'closed':
                     yield None, 'Parent ticket #%s is closed' % id
+
+    # ITemplateStreamFilter method
+    def filter_stream(self, req, method, filename, stream, data):
+        if req.path_info.startswith('/ticket/'):
+            div = None
+            if 'ticket' in data:
+                # get parents data
+                ticket = data['ticket']
+                # title
+                div = tag.div(class_='description')
+                if ticket['status'] != 'closed':
+                    link = tag.a('add', href=req.href.newticket(parents=ticket.id))
+                    link = tag.span('(', link, ')', class_='addsubticket')
+                else:
+                    link = None
+                div.append(tag.h3('Subtickets ', link))
+
+            if 'subtickets' in data:
+                # table
+                tbody = tag.tbody()
+                div.append(tag.table(tbody, class_='subtickets'))
+
+                # tickets
+                def _func(children, depth=0):
+                    for id in sorted(children, key=lambda x: int(x)):
+                        ticket = Ticket(self.env, id)
+
+                        # 1st column
+                        attrs = {'href': req.href.ticket(id)}
+                        if ticket['status'] == 'closed':
+                            attrs['class_'] = 'closed'
+                        link = tag.a('#%s' % id, **attrs)
+                        summary = tag.td(link, ': %s' % ticket['summary'],
+                            style='padding-left: %dpx;' % (depth * 15))
+                        # 2nd column
+                        type = tag.td(ticket['type'])
+                        # 3rd column
+                        status = tag.td(ticket['status'])
+                        # 4th column
+                        href = req.href.query(status='!closed',
+                                              owner=ticket['owner'])
+                        owner = tag.td(tag.a(ticket['owner'], href=href))
+
+                        tbody.append(tag.tr(summary, type, status, owner))
+                        _func(children[id], depth + 1)
+
+                _func(data['subtickets'])
+
+            if div:
+                add_stylesheet(req, 'subtickets/css/subtickets.css')
+                stream |= Transformer('.//div[@id="ticket"]').append(div)
+
+        return stream
 
