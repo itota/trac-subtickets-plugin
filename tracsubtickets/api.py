@@ -38,13 +38,14 @@ from trac.ticket.api import ITicketChangeListener, ITicketManipulator
 import db_default
 
 
+NUMBERS_RE = re.compile(r'\d+', re.U)
+
+
 class SubTicketsSystem(Component):
 
     implements(IEnvironmentSetupParticipant,
                ITicketChangeListener,
                ITicketManipulator)
-
-    NUMBERS_RE = re.compile(r'\d+', re.U)
 
     # IEnvironmentSetupParticipant methods
     def environment_created(self):
@@ -118,8 +119,8 @@ class SubTicketsSystem(Component):
             return
 
         old_parents = old_values.get('parents', '') or ''
-        old_parents = set(self.NUMBERS_RE.findall(old_parents))
-        new_parents = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
+        old_parents = set(NUMBERS_RE.findall(old_parents))
+        new_parents = set(NUMBERS_RE.findall(ticket['parents'] or ''))
 
         if new_parents == old_parents:
             return
@@ -154,7 +155,7 @@ class SubTicketsSystem(Component):
 
         try:
             ids = []
-            _ids = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
+            _ids = set(NUMBERS_RE.findall(ticket['parents'] or ''))
             myid = str(ticket.id)
             for id in _ids:
                 if id == myid:

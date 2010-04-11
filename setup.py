@@ -52,6 +52,9 @@ setup(
             'tracsubtickets.api = tracsubtickets.api',
             'tracsubtickets.web_ui = tracsubtickets.web_ui',
         ],
+        'console_scripts': [
+            'check-trac-subtickets = tracsubtickets.checker:main',
+        ],
     },
 )
 

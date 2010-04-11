@@ -35,7 +35,7 @@ from trac.ticket.model import Ticket
 from genshi.builder import tag
 from genshi.filters import Transformer
 
-from api import SubTicketsSystem
+from api import NUMBERS_RE
 
 
 class SubTicketsModule(Component):
@@ -44,8 +44,6 @@ class SubTicketsModule(Component):
                IRequestFilter,
                ITicketManipulator,
                ITemplateStreamFilter)
-
-    NUMBERS_RE = SubTicketsSystem.NUMBERS_RE
 
     # ITemplateProvider methods
     def get_htdocs_dirs(self):
@@ -65,7 +63,7 @@ class SubTicketsModule(Component):
             # get parents data
             ticket = data['ticket']
             parents = ticket['parents'] or ''
-            ids = set(self.NUMBERS_RE.findall(parents))
+            ids = set(NUMBERS_RE.findall(parents))
 
             if len(parents) > 0:
                 self._append_parent_links(req, data, ids)
@@ -125,7 +123,7 @@ class SubTicketsModule(Component):
                     yield None, 'Child ticket #%s has not been closed yet' % child
 
         elif action == 'reopen':
-            ids = set(self.NUMBERS_RE.findall(ticket['parents'] or ''))
+            ids = set(NUMBERS_RE.findall(ticket['parents'] or ''))
             for id in ids:
                 if Ticket(self.env, id)['status'] == 'closed':
                     yield None, 'Parent ticket #%s is closed' % id
