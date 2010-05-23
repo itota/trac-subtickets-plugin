@@ -45,7 +45,7 @@ setup(
     Checks ensure i.e. resolving of sub-tickets before closing the parent.
     Babel is required to display localized texts.
     Currently only translation for de_DE is provided.
-    """
+    """,
     license = 'BSD',
 
     install_requires = ['Trac >= 0.12dev'],
