@@ -35,7 +35,7 @@ from trac.ticket.model import Ticket
 from genshi.builder import tag
 from genshi.filters import Transformer
 
-from api import NUMBERS_RE
+from api import NUMBERS_RE, _
 
 
 class SubTicketsModule(Component):
@@ -120,13 +120,13 @@ class SubTicketsModule(Component):
 
             for parent, child in cursor:
                 if Ticket(self.env, child)['status'] != 'closed':
-                    yield None, 'Child ticket #%s has not been closed yet' % child
+                    yield None, _('Child ticket #%s has not been closed yet') % child
 
         elif action == 'reopen':
             ids = set(NUMBERS_RE.findall(ticket['parents'] or ''))
             for id in ids:
                 if Ticket(self.env, id)['status'] == 'closed':
-                    yield None, 'Parent ticket #%s is closed' % id
+                    yield None, _('Parent ticket #%s is closed') % id
 
     # ITemplateStreamFilter method
     def filter_stream(self, req, method, filename, stream, data):
@@ -138,11 +138,13 @@ class SubTicketsModule(Component):
                 # title
                 div = tag.div(class_='description')
                 if ticket['status'] != 'closed':
-                    link = tag.a('add', href=req.href.newticket(parents=ticket.id))
+                    link = tag.a(_('add'),
+                        href=req.href.newticket(parents=ticket.id),
+                        title=_('Create new child ticket'))
                     link = tag.span('(', link, ')', class_='addsubticket')
                 else:
                     link = None
-                div.append(tag.h3('Subtickets ', link))
+                div.append(tag.h3(_('Subtickets '), link))
 
             if 'subtickets' in data:
                 # table

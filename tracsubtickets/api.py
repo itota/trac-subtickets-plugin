@@ -29,16 +29,26 @@
 
 import re
 
+import pkg_resources
+
 from trac.core import *
 from trac.env import IEnvironmentSetupParticipant
 from trac.db import DatabaseManager
 from trac.ticket.model import Ticket
 from trac.ticket.api import ITicketChangeListener, ITicketManipulator
 
+from trac.util.translation import domain_functions
+
+
 import db_default
 
 
 NUMBERS_RE = re.compile(r'\d+', re.U)
+
+# i18n support for plugins, available since Trac r7705
+# use _, tag_ and N_ as usual, e.g. _("this is a message text")
+_, tag_, N_, add_domain = domain_functions('tracsubtickets', 
+    '_', 'tag_', 'N_', 'add_domain')
 
 
 class SubTicketsSystem(Component):
@@ -46,6 +56,13 @@ class SubTicketsSystem(Component):
     implements(IEnvironmentSetupParticipant,
                ITicketChangeListener,
                ITicketManipulator)
+
+    def __init__(self):
+        self._version = None
+        self.ui = None
+        # bind the 'traccsubtickets' catalog to the locale directory
+        locale_dir = pkg_resources.resource_filename(__name__, 'locale')
+        add_domain(self.env.path, locale_dir)
 
     # IEnvironmentSetupParticipant methods
     def environment_created(self):
@@ -159,13 +176,13 @@ class SubTicketsSystem(Component):
             myid = str(ticket.id)
             for id in _ids:
                 if id == myid:
-                    yield 'parents', 'A ticket cannot be a parent to itself'
+                    yield 'parents', _('A ticket cannot be a parent to itself')
                 else:
                     # check if the id exists
                     cursor.execute("SELECT id FROM ticket WHERE id=%s", (id, ))
                     row = cursor.fetchone()
                     if row is None:
-                        yield 'parents', 'Ticket #%s does not exist' % id
+                        yield 'parents', _('Ticket #%s does not exist') % id
                 ids.append(id)
 
             # circularity check function
@@ -176,7 +193,7 @@ class SubTicketsSystem(Component):
                 for x in [int(x[0]) for x in cursor]:
                     if x in all_parents:
                         error = ' > '.join(['#%s' % n for n in all_parents + [x]])
-                        errors.append(('parents', 'Circularity error: %s' % error))
+                        errors.append(('parents', _('Circularity error: %s') % error))
                     else:
                         errors += _check_parents(x, all_parents)
                 return errors
@@ -185,7 +202,7 @@ class SubTicketsSystem(Component):
                 # check parent ticket state
                 parent = Ticket(self.env, x)
                 if parent and parent['status'] == 'closed':
-                    yield 'parents', 'Parent ticket #%s is closed' % x
+                    yield 'parents', _('Parent ticket #%s is closed') % x
                 else:
                     # check circularity
                     all_parents = ticket.id and [ticket.id] or []
@@ -196,5 +213,5 @@ class SubTicketsSystem(Component):
 
         except Exception, e:
             self.log.error(e)
-            yield 'parents', 'Not a valid list of ticket IDs'
+            yield 'parents', _('Not a valid list of ticket IDs')
 

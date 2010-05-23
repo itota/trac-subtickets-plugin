@@ -1,0 +1,61 @@
+# translation of tracsubtickets.po to German
+# German (Germany) translations for TracSubTicketsPlugin.
+# Copyright (C) 2010
+# This file is distributed under the same license as the
+# TracSubTicketsPlugin project.
+#
+# Steffen Hoffmann <hoff.st@web.de>, 2010.
+msgid ""
+msgstr ""
+"Project-Id-Version: TracSubTicketsPlugin 0.1.x\n"
+"Report-Msgid-Bugs-To: hoff.st@web.de\n"
+"POT-Creation-Date: 2010-05-04 01:38+0200\n"
+"PO-Revision-Date: 2010-05-04 01:48+0200\n"
+"Last-Translator: Steffen Hoffmann <hoff.st@web.de>\n"
+"Language-Team: German de_DE <trac-dev@googlegroups.com>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.0dev-r482\n"
+
+#: tracsubtickets/api.py:179
+msgid "A ticket cannot be a parent to itself"
+msgstr "Ein Ticket kann nicht sein eigener Vorläufer sein"
+
+#: tracsubtickets/api.py:185
+#, python-format
+msgid "Ticket #%s does not exist"
+msgstr "Ticket #%s ist nicht vorhanden"
+
+#: tracsubtickets/api.py:196
+#, python-format
+msgid "Circularity error: %s"
+msgstr "Zirkelbezug: %s"
+
+#: tracsubtickets/api.py:205 tracsubtickets/web_ui.py:129
+#, python-format
+msgid "Parent ticket #%s is closed"
+msgstr "Das Vorgänger-Ticket #%s ist geschossen"
+
+#: tracsubtickets/api.py:216
+msgid "Not a valid list of ticket IDs"
+msgstr "Keine gültige Liste von Ticket-IDs"
+
+#: tracsubtickets/web_ui.py:123
+#, python-format
+msgid "Child ticket #%s has not been closed yet"
+msgstr "Folge-Ticket #%s wurde bisher noch nicht geschlossen"
+
+#: tracsubtickets/web_ui.py:141
+msgid "add"
+msgstr "hinzufügen"
+
+#: tracsubtickets/web_ui.py:143
+msgid "Create new child ticket"
+msgstr "Neues Folge-Ticket erstellen"
+
+#: tracsubtickets/web_ui.py:147
+msgid "Subtickets "
+msgstr "Folge-Tickets "
+

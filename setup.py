@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright (c) 2010, Takashi Ito
+# i18n and German translation by Steffen Hoffmann
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,20 +32,30 @@ from setuptools import find_packages, setup
 
 setup(
     name = 'TracSubTicketsPlugin',
-    version = '0.1.0',
+    version = '0.1.1',
     keywords = 'trac plugin ticket subticket',
     author = 'Takashi Ito',
     author_email = 'TakashiC.Ito@gmail.com',
     url = 'http://github.com/itota/trac-subtickets-plugin',
     description = 'Trac Sub-Tickets Plugin',
+    long_description = """
+    This plugin for Trac 0.12 provides Sub-Tickets functionality.
+
+    The association is done by adding parent tickets number to a custom field.
+    Checks ensure i.e. resolving of sub-tickets before closing the parent.
+    Babel is required to display localized texts.
+    Currently only translation for de_DE is provided.
+    """
     license = 'BSD',
 
-    install_requires = ['Trac'],
+    install_requires = ['Trac >= 0.12dev'],
 
     packages = find_packages(exclude=['*.tests*']),
     package_data = {
         'tracsubtickets': [
             'htdocs/css/*.css',
+            'locale/*.*',
+            'locale/*/LC_MESSAGES/*.*',
         ],
     },
     entry_points = {
@@ -57,4 +68,3 @@ setup(
         ],
     },
 )
-
