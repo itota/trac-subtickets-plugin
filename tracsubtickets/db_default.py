@@ -33,8 +33,8 @@ name = 'subtickets'
 version = 1
 tables = [
     Table(name, key=('parent','child'))[
-        Column('parent'),
-        Column('child'),
+        Column('parent', type='int'),
+        Column('child', type='int'),
     ],
 ]
 
