@@ -201,7 +201,7 @@ class SubTicketsSystem(Component):
             for x in ids:
                 # check parent ticket state
                 parent = Ticket(self.env, x)
-                if parent and parent['status'] == 'closed':
+                if parent and parent['status'] == 'closed' and ticket['status'] != 'closed':
                     yield 'parents', _('Parent ticket #%s is closed') % x
                 else:
                     # check circularity
