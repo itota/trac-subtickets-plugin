@@ -151,7 +151,7 @@ class SubTicketsSystem(Component):
                            (parent, ticket.id))
             # add a comment to old parent
             xticket = Ticket(self.env, parent)
-            xticket.save_changes(author, 'Remove a subticket ' + str(ticket.id) + '.')
+            xticket.save_changes(author, 'Remove a subticket #' + str(ticket.id) + '.')
 
         # add new parents
         for parent in new_parents - old_parents:
@@ -159,7 +159,7 @@ class SubTicketsSystem(Component):
                            (parent, ticket.id))
             # add a comment to new parent
             xticket = Ticket(self.env, parent)
-            xticket.save_changes(author, 'Add a subticket ' + str(ticket.id) + '.')
+            xticket.save_changes(author, 'Add a subticket #' + str(ticket.id) + '.')
 
         db.commit()
 
