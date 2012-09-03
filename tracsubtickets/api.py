@@ -149,10 +149,18 @@ class SubTicketsSystem(Component):
         for parent in old_parents - new_parents:
             cursor.execute("DELETE FROM subtickets WHERE parent=%s AND child=%s",
                            (parent, ticket.id))
+            # add a comment to old parent
+            xticket = Ticket(self.env, parent)
+            xticket.save_changes(author, 'Remove a subticket ' + str(ticket.id) + '.')
+
         # add new parents
         for parent in new_parents - old_parents:
             cursor.execute("INSERT INTO subtickets VALUES(%s, %s)",
                            (parent, ticket.id))
+            # add a comment to new parent
+            xticket = Ticket(self.env, parent)
+            xticket.save_changes(author, 'Add a subticket ' + str(ticket.id) + '.')
+
         db.commit()
 
     def ticket_deleted(self, ticket):
