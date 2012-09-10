@@ -36,6 +36,7 @@ from trac.env import IEnvironmentSetupParticipant
 from trac.db import DatabaseManager
 from trac.ticket.model import Ticket
 from trac.ticket.api import ITicketChangeListener, ITicketManipulator
+from trac.ticket.notification import TicketNotifyEmail
 
 from trac.util.translation import domain_functions
 
@@ -152,6 +153,9 @@ class SubTicketsSystem(Component):
             # add a comment to old parent
             xticket = Ticket(self.env, parent)
             xticket.save_changes(author, 'Remove a subticket #' + str(ticket.id) + '.')
+            tn = TicketNotifyEmail(self.env)
+            tn.notify(xticket, newticket=False, modtime=xticket['changetime'])
+
 
         # add new parents
         for parent in new_parents - old_parents:
@@ -160,6 +164,8 @@ class SubTicketsSystem(Component):
             # add a comment to new parent
             xticket = Ticket(self.env, parent)
             xticket.save_changes(author, 'Add a subticket #' + str(ticket.id) + '.')
+            tn = TicketNotifyEmail(self.env)
+            tn.notify(xticket, newticket=False, modtime=xticket['changetime'])
 
         db.commit()
 
