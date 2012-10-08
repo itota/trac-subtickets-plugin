@@ -108,13 +108,12 @@ class SubTicketsModule(Component):
             children[id] = self.get_children(id, db)
 
         return children
-        
+
     def validate_ticket(self, req, ticket):
         action = req.args.get('action')
         if action == 'resolve':
             db = self.env.get_db_cnx()
             cursor = db.cursor()
-
             cursor.execute("SELECT parent, child FROM subtickets WHERE parent=%s",
                            (ticket.id, ))
 

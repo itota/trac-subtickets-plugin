@@ -30,7 +30,7 @@
 from trac.db import Table, Column
 
 name = 'subtickets'
-version = 1
+version = 2
 tables = [
     Table(name, key=('parent','child'))[
         Column('parent', type='int'),

@@ -48,7 +48,7 @@ NUMBERS_RE = re.compile(r'\d+', re.U)
 
 # i18n support for plugins, available since Trac r7705
 # use _, tag_ and N_ as usual, e.g. _("this is a message text")
-_, tag_, N_, add_domain = domain_functions('tracsubtickets', 
+_, tag_, N_, add_domain = domain_functions('tracsubtickets',
     '_', 'tag_', 'N_', 'add_domain')
 
 
@@ -102,11 +102,11 @@ class SubTicketsSystem(Component):
             cursor.execute("UPDATE system SET value=%s WHERE name=%s",
                            (db_default.version, db_default.name))
             for table in db_default.tables:
-                cursor.execute("SELECT * FROM %s", (table.name, ))
-                cols = [x[0] for x in cursor.description],
+                cursor.execute("SELECT * FROM " + table.name)
+                cols = [x[0] for x in cursor.description]
                 rows = cursor.fetchall()
                 old_data[table.name] = (cols, rows)
-                cursor.execute("DROP TABLE %s", (table.name))
+                cursor.execute("DROP TABLE " + table.name)
 
         # insert the default table
         for table in db_default.tables:
@@ -152,7 +152,7 @@ class SubTicketsSystem(Component):
                            (parent, ticket.id))
             # add a comment to old parent
             xticket = Ticket(self.env, parent)
-            xticket.save_changes(author, 'Remove a subticket #' + str(ticket.id) + '.')
+            xticket.save_changes(author, _('Remove a subticket #%s.') % ticket.id)
             tn = TicketNotifyEmail(self.env)
             tn.notify(xticket, newticket=False, modtime=xticket['changetime'])
 
@@ -163,7 +163,7 @@ class SubTicketsSystem(Component):
                            (parent, ticket.id))
             # add a comment to new parent
             xticket = Ticket(self.env, parent)
-            xticket.save_changes(author, 'Add a subticket #' + str(ticket.id) + '.')
+            xticket.save_changes(author, _('Add a subticket #%s.') % ticket.id)
             tn = TicketNotifyEmail(self.env)
             tn.notify(xticket, newticket=False, modtime=xticket['changetime'])
 
