@@ -60,17 +60,18 @@ class SubTicketsModule(Component):
     def post_process_request(self, req, template, data, content_type):
         path = req.path_info
         if path.startswith('/ticket/') or path.startswith('/newticket'):
-            # get parents data
-            ticket = data['ticket']
-            parents = ticket['parents'] or ''
-            ids = set(NUMBERS_RE.findall(parents))
-
-            if len(parents) > 0:
-                self._append_parent_links(req, data, ids)
-
-            children = self.get_children(ticket.id)
-            if children:
-                data['subtickets'] = children
+            # get parent ticket's data
+            if data and 'ticket' in data:
+                ticket = data['ticket']
+                parents = ticket['parents'] or ''
+                ids = set(NUMBERS_RE.findall(parents))
+    
+                if len(parents) > 0:
+                    self._append_parent_links(req, data, ids)
+    
+                children = self.get_children(ticket.id)
+                if children:
+                    data['subtickets'] = children
 
         return template, data, content_type
 
