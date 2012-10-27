@@ -35,7 +35,7 @@ from trac.ticket.model import Ticket
 from genshi.builder import tag
 from genshi.filters import Transformer
 
-from api import NUMBERS_RE, _
+from api import SubTicketsSystem, NUMBERS_RE, _
 
 
 class SubTicketsModule(Component):
@@ -44,6 +44,8 @@ class SubTicketsModule(Component):
                IRequestFilter,
                ITicketManipulator,
                ITemplateStreamFilter)
+
+    restricted_status = SubTicketsSystem.restricted_status
 
     # ITemplateProvider methods
     def get_htdocs_dirs(self):
@@ -118,14 +120,16 @@ class SubTicketsModule(Component):
                            (ticket.id, ))
 
             for parent, child in cursor:
-                if Ticket(self.env, child)['status'] != 'closed':
-                    yield None, _('Child ticket #%s has not been closed yet') % child
+                status = Ticket(self.env, child)['status']
+                if status not in self.restricted_status:
+                    yield None, _('Child ticket #%s has not been %s yet') % (child, status)
 
         elif action == 'reopen':
             ids = set(NUMBERS_RE.findall(ticket['parents'] or ''))
             for id in ids:
-                if Ticket(self.env, id)['status'] == 'closed':
-                    yield None, _('Parent ticket #%s is closed') % id
+                status = Ticket(self.env, id)['status']
+                if status in self.restricted_status:
+                    yield None, _('Parent ticket #%s is %s') % (id, status)
 
     # ITemplateStreamFilter method
     def filter_stream(self, req, method, filename, stream, data):
@@ -136,7 +140,7 @@ class SubTicketsModule(Component):
                 ticket = data['ticket']
                 # title
                 div = tag.div(class_='description')
-                if ticket['status'] != 'closed':
+                if ticket['status'] not in self.restricted_status:
                     link = tag.a(_('add'),
                         href=req.href.newticket(parents=ticket.id),
                         title=_('Create new child ticket'))

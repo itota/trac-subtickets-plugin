@@ -37,6 +37,7 @@ from trac.db import DatabaseManager
 from trac.ticket.model import Ticket
 from trac.ticket.api import ITicketChangeListener, ITicketManipulator
 from trac.ticket.notification import TicketNotifyEmail
+from trac.config import ListOption
 
 from trac.util.translation import domain_functions
 
@@ -57,6 +58,11 @@ class SubTicketsSystem(Component):
     implements(IEnvironmentSetupParticipant,
                ITicketChangeListener,
                ITicketManipulator)
+
+    restricted_status = ListOption('subtickets', 'restricted_status',
+                                   'closed', doc=
+        """List of the children's statuses which prevent from closing parent ticket.
+        """)
 
     def __init__(self):
         self._version = None
@@ -215,7 +221,7 @@ class SubTicketsSystem(Component):
             for x in ids:
                 # check parent ticket state
                 parent = Ticket(self.env, x)
-                if parent and parent['status'] == 'closed' and ticket['status'] != 'closed':
+                if parent and parent['status'] in self.restricted_status and ticket['status'] not in self.restricted_status:
                     yield 'parents', _('Parent ticket #%s is closed') % x
                 else:
                     # check circularity
