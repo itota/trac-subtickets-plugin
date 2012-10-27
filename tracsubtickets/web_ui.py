@@ -32,6 +32,7 @@ from trac.web.api import IRequestFilter, ITemplateStreamFilter
 from trac.web.chrome import ITemplateProvider, add_stylesheet
 from trac.ticket.api import ITicketManipulator
 from trac.ticket.model import Ticket
+from trac.resource import ResourceNotFound
 from genshi.builder import tag
 from genshi.filters import Transformer
 
@@ -78,14 +79,17 @@ class SubTicketsModule(Component):
     def _append_parent_links(self, req, data, ids):
         links = []
         for id in sorted(ids, key=lambda x: int(x)):
-            ticket = Ticket(self.env, id)
-            elem = tag.a('#%s' % id,
-                         href=req.href.ticket(id),
-                         class_='%s ticket' % ticket['status'],
-                         title=ticket['summary'])
-            if len(links) > 0:
-                links.append(', ')
-            links.append(elem)
+            try:
+                ticket = Ticket(self.env, id)
+                elem = tag.a('#%s' % id,
+                             href=req.href.ticket(id),
+                             class_='%s ticket' % ticket['status'],
+                             title=ticket['summary'])
+                if len(links) > 0:
+                    links.append(', ')
+                links.append(elem)
+            except ResourceNotFound, e:
+                pass
         for field in data.get('fields', ''):
             if field.get('name') == 'parents':
                 field['rendered'] = tag.span(*links)

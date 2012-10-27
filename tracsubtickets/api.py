@@ -215,7 +215,7 @@ class SubTicketsSystem(Component):
                         errors += _check_parents(x, all_parents)
                 return errors
 
-            for x in _ids:
+            for x in [i for i in _ids if i not in invalid_ids]:
                 # check parent ticket state
                 try:
                     parent = Ticket(self.env, x)
