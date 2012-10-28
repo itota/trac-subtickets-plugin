@@ -32,6 +32,7 @@ from trac.web.api import IRequestFilter, ITemplateStreamFilter
 from trac.web.chrome import ITemplateProvider, add_stylesheet
 from trac.ticket.api import ITicketManipulator
 from trac.ticket.model import Ticket
+from trac.resource import ResourceNotFound
 from genshi.builder import tag
 from genshi.filters import Transformer
 
@@ -62,31 +63,35 @@ class SubTicketsModule(Component):
     def post_process_request(self, req, template, data, content_type):
         path = req.path_info
         if path.startswith('/ticket/') or path.startswith('/newticket'):
-            # get parents data
-            ticket = data['ticket']
-            parents = ticket['parents'] or ''
-            ids = set(NUMBERS_RE.findall(parents))
-
-            if len(parents) > 0:
-                self._append_parent_links(req, data, ids)
-
-            children = self.get_children(ticket.id)
-            if children:
-                data['subtickets'] = children
+            # get parent ticket's data
+            if data and 'ticket' in data:
+                ticket = data['ticket']
+                parents = ticket['parents'] or ''
+                ids = set(NUMBERS_RE.findall(parents))
+    
+                if len(parents) > 0:
+                    self._append_parent_links(req, data, ids)
+    
+                children = self.get_children(ticket.id)
+                if children:
+                    data['subtickets'] = children
 
         return template, data, content_type
 
     def _append_parent_links(self, req, data, ids):
         links = []
         for id in sorted(ids, key=lambda x: int(x)):
-            ticket = Ticket(self.env, id)
-            elem = tag.a('#%s' % id,
-                         href=req.href.ticket(id),
-                         class_='%s ticket' % ticket['status'],
-                         title=ticket['summary'])
-            if len(links) > 0:
-                links.append(', ')
-            links.append(elem)
+            try:
+                ticket = Ticket(self.env, id)
+                elem = tag.a('#%s' % id,
+                             href=req.href.ticket(id),
+                             class_='%s ticket' % ticket['status'],
+                             title=ticket['summary'])
+                if len(links) > 0:
+                    links.append(', ')
+                links.append(elem)
+            except ResourceNotFound, e:
+                pass
         for field in data.get('fields', ''):
             if field.get('name') == 'parents':
                 field['rendered'] = tag.span(*links)

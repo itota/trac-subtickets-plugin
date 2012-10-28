@@ -34,6 +34,7 @@ import pkg_resources
 from trac.core import *
 from trac.env import IEnvironmentSetupParticipant
 from trac.db import DatabaseManager
+from trac.resource import ResourceNotFound
 from trac.ticket.model import Ticket
 from trac.ticket.api import ITicketChangeListener, ITicketManipulator
 from trac.ticket.notification import TicketNotifyEmail
@@ -191,19 +192,20 @@ class SubTicketsSystem(Component):
         cursor = db.cursor()
 
         try:
-            ids = []
+            invalid_ids = set()
             _ids = set(NUMBERS_RE.findall(ticket['parents'] or ''))
             myid = str(ticket.id)
             for id in _ids:
                 if id == myid:
+                    invalid_ids.add(id)
                     yield 'parents', _('A ticket cannot be a parent to itself')
                 else:
                     # check if the id exists
                     cursor.execute("SELECT id FROM ticket WHERE id=%s", (id, ))
                     row = cursor.fetchone()
                     if row is None:
+                        invalid_ids.add(id)
                         yield 'parents', _('Ticket #%s does not exist') % id
-                ids.append(id)
 
             # circularity check function
             def _check_parents(id, all_parents):
@@ -212,26 +214,32 @@ class SubTicketsSystem(Component):
                 cursor.execute("SELECT parent FROM subtickets WHERE child=%s", (id, ))
                 for x in [int(x[0]) for x in cursor]:
                     if x in all_parents:
+                        invalid_ids.add(x)
                         error = ' > '.join(['#%s' % n for n in all_parents + [x]])
                         errors.append(('parents', _('Circularity error: %s') % error))
                     else:
                         errors += _check_parents(x, all_parents)
                 return errors
 
-            for x in ids:
+            for x in [i for i in _ids if i not in invalid_ids]:
                 # check parent ticket state
-                parent = Ticket(self.env, x)
-                if parent and parent['status'] in self.restricted_status and ticket['status'] not in self.restricted_status:
-                    yield 'parents', _('Parent ticket #%s is closed') % x
-                else:
-                    # check circularity
-                    all_parents = ticket.id and [ticket.id] or []
-                    for error in _check_parents(int(x), all_parents):
-                        yield error
+                try:
+                    parent = Ticket(self.env, x)
+                    if parent and parent['status'] in self.restricted_status and ticket['status'] not in self.restricted_status:
+                        yield 'parents', _('Parent ticket #%s is closed') % x
+                    else:
+                        # check circularity
+                        all_parents = ticket.id and [ticket.id] or []
+                        for error in _check_parents(int(x), all_parents):
+                            yield error
+                except ResourceNotFound, e:
+                    invalid_ids.add(x)
 
-            ticket['parents'] = ', '.join(sorted(ids, key=lambda x: int(x)))
+            valid_ids = _ids.difference(invalid_ids)
+            ticket['parents'] = valid_ids and ', '.join(sorted(valid_ids, key=lambda x: int(x))) or ''
 
         except Exception, e:
-            self.log.error(e)
+            import traceback
+            self.log.error(traceback.format_exc())
             yield 'parents', _('Not a valid list of ticket IDs')
 
